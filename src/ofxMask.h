@@ -24,12 +24,20 @@ public:
 	
 	void drawMasker();
 	void drawMaskee();
+    
+    ofFbo* getMasker();
+    ofFbo* getMaskee();
+    
+    int getWidth();
+    int getHeight();
 
 private:
 	ofFbo masker_, maskee_;
 	ofShader shader_;
 	float vertices_[8];
 	float tex_coords_[8];
+    int width;
+    int height;
 };
 
 /* EOF */

@@ -37,6 +37,8 @@ namespace {
 }
 void ofxMask::setup(int width, int height, Type type)
 {
+    this->width = width;
+    this->height = height;
 #define _S(a) #a
     switch(type) {
         case ALPHA: {
@@ -73,8 +75,8 @@ void ofxMask::setup(int width, int height, Type type)
     }
 #undef _S
     maskee_.allocate(width, height, GL_RGBA);
-    makeTexCoords(tex_coords_, masker_.getTexture().getTextureData());
-    makeVertices(vertices_, masker_.getTexture().getTextureData());
+    makeTexCoords(tex_coords_, masker_.getTextureReference().getTextureData());
+    makeVertices(vertices_, masker_.getTextureReference().getTextureData());
 }
 
 void ofxMask::beginMask(bool clear)
@@ -135,6 +137,22 @@ void ofxMask::drawMasker()
 void ofxMask::drawMaskee()
 {
     maskee_.draw(0,0,maskee_.getWidth(),maskee_.getHeight());
+}
+
+ofFbo* ofxMask::getMasker(){
+    return &masker_;
+}
+
+ofFbo* ofxMask::getMaskee(){
+    return &maskee_;
+}
+
+int ofxMask::getWidth(){
+    return width;
+}
+
+int ofxMask::getHeight(){
+    return height;
 }
 
 /* EOF */
