@@ -30,6 +30,8 @@ public:
     
     int getWidth();
     int getHeight();
+    
+    void setInvertMask(bool invert);
 
 private:
 	ofFbo masker_, maskee_;
@@ -38,6 +40,7 @@ private:
 	float tex_coords_[8];
     int width;
     int height;
+    bool invert;
 };
 
 /* EOF */

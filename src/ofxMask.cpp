@@ -37,6 +37,7 @@ namespace {
 }
 void ofxMask::setup(int width, int height, Type type)
 {
+    this->invert = false;
     this->width = width;
     this->height = height;
 #define _S(a) #a
@@ -44,13 +45,20 @@ void ofxMask::setup(int width, int height, Type type)
         case ALPHA: {
             masker_.allocate(width, height, GL_RGBA);
             string shader_src = _S(
+                                   uniform float invert;
                                    uniform sampler2DRect masker;
                                    uniform sampler2DRect maskee;
                                    void main()
                                    {
                                        gl_FragColor = texture2DRect(maskee, gl_TexCoord[0].st);
                                        gl_FragColor.a *= texture2DRect(masker, gl_TexCoord[0].st).a;
-                                       gl_FragColor.a = sqrt(gl_FragColor.a);
+                                       if(invert > 0.5){
+                                           gl_FragColor.a = abs(sqrt(gl_FragColor.a)-1.0);
+                                       }
+                                       else{
+                                           gl_FragColor.a = sqrt(gl_FragColor.a);
+                                       }
+                                       
                                    }
                                    );
             shader_.setupShaderFromSource(GL_FRAGMENT_SHADER, shader_src);
@@ -59,6 +67,7 @@ void ofxMask::setup(int width, int height, Type type)
         case LUMINANCE: {
             masker_.allocate(width, height, GL_RGB);
             string shader_src = _S(
+                                   uniform float invert;
                                    uniform sampler2DRect masker;
                                    uniform sampler2DRect maskee;
                                    void main()
@@ -66,7 +75,12 @@ void ofxMask::setup(int width, int height, Type type)
                                        gl_FragColor = texture2DRect(maskee, gl_TexCoord[0].st);
                                        vec4 rgb = texture2DRect(masker, gl_TexCoord[0].st);
                                        gl_FragColor.a *= 0.298912*rgb.r + 0.586611*rgb.g + 0.114478*rgb.b;
-                                       gl_FragColor.a = sqrt(gl_FragColor.a);
+                                       if(invert > 0.5){
+                                           gl_FragColor.a = abs(sqrt(gl_FragColor.a)-1.0);
+                                       }
+                                       else{
+                                           gl_FragColor.a = sqrt(gl_FragColor.a);
+                                       }
                                    }
                                    );
             shader_.setupShaderFromSource(GL_FRAGMENT_SHADER, shader_src);
@@ -81,7 +95,7 @@ void ofxMask::setup(int width, int height, Type type)
 
 void ofxMask::beginMask(bool clear)
 {
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+//    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     masker_.begin();
     if(clear) {
         ofClear(0.0f, 0.0f, 0.0f, 0.0f);
@@ -119,6 +133,7 @@ void ofxMask::draw()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     shader_.begin();
+    shader_.setUniform1f("invert", invert ? 1.0 : 0.0);
     shader_.setUniformTexture("masker", masker_, 0);
     shader_.setUniformTexture("maskee", maskee_, 1);
     glEnableClientState( GL_TEXTURE_COORD_ARRAY );
@@ -153,6 +168,10 @@ int ofxMask::getWidth(){
 
 int ofxMask::getHeight(){
     return height;
+}
+
+void ofxMask::setInvertMask(bool invert){
+    this->invert = invert;
 }
 
 /* EOF */
