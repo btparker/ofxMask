@@ -11,7 +11,7 @@ public:
 		ALPHA,
 		LUMINANCE
 	};
-	void setup(int width, int height, Type type, bool useSecondMaskee = false);
+	void setup(int width, int height, GLint internalFormat, Type type, bool useSecondMaskee = false);
 
 	void beginMask(bool clear=true);
 	void endMask();
@@ -47,6 +47,7 @@ private:
     int height;
     bool invert;
     bool useSecondMaskee;
+    GLint internalFormat;
 };
 
 /* EOF */
