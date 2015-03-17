@@ -45,6 +45,13 @@ void ofApp::draw(){
     
     // Now drawing the mask, with transparency (since we enabled alpha blending in the setup)
     mask.draw();
+    
+    // If you want to draw the mask
+    //mask.drawMasker();
+    
+    
+    // If you want to draw the maskee
+    //mask.drawMaskee();
 }
 
 //--------------------------------------------------------------
