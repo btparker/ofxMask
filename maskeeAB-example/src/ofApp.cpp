@@ -29,7 +29,7 @@ void ofApp::draw(){
     ofBackground(80);
     
     mask.beginMask();
-    // Set the background to black. Black is drawn as maskee A
+    // Set the background to black. Black is drawn as maskee B
     ofBackground(0, 0, 0, 255);
 
     ofPushMatrix();
@@ -37,7 +37,7 @@ void ofApp::draw(){
     ofRotate(ofMap(mouseX, 0, ofGetWidth(), 0, 359));
     ofTranslate(-ofGetWidth()/2, -ofGetHeight()/2);
     
-    // Drawing a white rectangle, rotated by mouseX. White is drawn as maskee B
+    // Drawing a white rectangle, rotated by mouseX. White is drawn as maskee A
     ofSetColor(255, 255, 255, 255);
     
     // Scaling the rectangle so that when it rotates it still perfectly bisects
