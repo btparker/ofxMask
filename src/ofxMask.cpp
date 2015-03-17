@@ -42,6 +42,7 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
     this->invert = false;
     this->width = width;
     this->height = height;
+    this->type = type;
 #define _S(a) #a
     switch(type) {
         case ALPHA: {
@@ -113,11 +114,18 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
 
 void ofxMask::beginMask(bool clear)
 {
-    glDisable(GL_BLEND);
+    glPushAttrib(GL_BLEND);
+    switch(type){
+        case LUMINANCE:
+            glDisable(GL_BLEND);
+            break;
+        case ALPHA:
+            glEnable(GL_BLEND);
+            glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            break;
+    }
+    
     masker_.begin();
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
     if(clear) {
         ofClear(0.0f, 0.0f, 0.0f, 0.0f);
     }
@@ -125,9 +133,8 @@ void ofxMask::beginMask(bool clear)
 
 void ofxMask::endMask()
 {
-    glDisable(GL_BLEND);
-    glPopAttrib();
     masker_.end();
+    glPopAttrib();
 }
 
 void ofxMask::clearMask()
@@ -135,6 +142,14 @@ void ofxMask::clearMask()
     masker_.begin();
     ofClear(0.0f, 0.0f, 0.0f, 0.0f);
     masker_.end();
+}
+
+void ofxMask::begin(bool clear){
+    beginA(clear);
+}
+
+void ofxMask::end(){
+    endA();
 }
 
 void ofxMask::beginA(bool clear)
@@ -160,11 +175,10 @@ void ofxMask::endB()
 
 void ofxMask::beginMaskee(ofFbo *maskee, bool clear)
 {
-    glDisable(GL_BLEND);
-    maskee->begin();
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glPushAttrib(GL_BLEND);
     glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    maskee->begin();
     
     if(clear) {
         ofClear(0.0f, 0.0f, 0.0f, 0.0f);
@@ -173,15 +187,15 @@ void ofxMask::beginMaskee(ofFbo *maskee, bool clear)
 
 void ofxMask::endMaskee(ofFbo *maskee)
 {
-    glDisable(GL_BLEND);
-    glPopAttrib();
     maskee->end();
+    glPopAttrib();
 }
 
 void ofxMask::draw()
 {
-    ofSetColor(255);
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glPushAttrib(GL_BLEND);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     shader_.begin();
     shader_.setUniform1f("invert", invert ? 1.0 : 0.0);
     shader_.setUniform1f("useABMaskees", useABMaskees ? 1.0 : 0.0);
@@ -197,6 +211,7 @@ void ofxMask::draw()
     glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );
     glDisableClientState( GL_TEXTURE_COORD_ARRAY );
     shader_.end();
+    glPopAttrib();
 }
 
 void ofxMask::drawMasker()

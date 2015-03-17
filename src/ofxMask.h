@@ -52,7 +52,7 @@ private:
     bool invert;
     bool useABMaskees;
     GLint internalFormat;
-    
+    Type type;
     void beginMaskee(ofFbo* maskee, bool clear = true);
     void endMaskee(ofFbo* maskee);
 };
