@@ -35,10 +35,10 @@ namespace {
         }
     }
 }
-void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool useSecondMaskee)
+void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool useABMaskees)
 {
     this->internalFormat = internalFormat;
-    this->useSecondMaskee = useSecondMaskee;
+    this->useABMaskees = useABMaskees;
     this->invert = false;
     this->width = width;
     this->height = height;
@@ -47,25 +47,25 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
         case ALPHA: {
             masker_.allocate(width, height, GL_RGBA);
             string shader_src = _S(
-                                   uniform float useSecondMaskee;
+                                   uniform float useABMaskees;
                                    uniform float invert;
                                    uniform sampler2DRect masker;
-                                   uniform sampler2DRect maskee;
-                                   uniform sampler2DRect secondMaskee;
+                                   uniform sampler2DRect maskeeA;
+                                   uniform sampler2DRect maskeeB;
                                    void main()
                                    {
-                                       gl_FragColor = texture2DRect(maskee, gl_TexCoord[0].st);
+                                       gl_FragColor = texture2DRect(maskeeA, gl_TexCoord[0].st);
                                        gl_FragColor.a *= texture2DRect(masker, gl_TexCoord[0].st).a;
                                        gl_FragColor.a = sqrt(gl_FragColor.a);
                                        if(invert > 0.5){
                                            gl_FragColor.a = abs(gl_FragColor.a-1.0);
                                        }
-                                       if(useSecondMaskee > 0.5){
-                                           vec4 rgb2 = texture2DRect(secondMaskee, gl_TexCoord[0].st);
+                                       if(useABMaskees > 0.5){
+                                           vec4 rgb2 = texture2DRect(maskeeB, gl_TexCoord[0].st);
                                            gl_FragColor.r = gl_FragColor.a*gl_FragColor.r + (1.0-gl_FragColor.a)*rgb2.r;
                                            gl_FragColor.g = gl_FragColor.a*gl_FragColor.g + (1.0-gl_FragColor.a)*rgb2.g;
                                            gl_FragColor.b = gl_FragColor.a*gl_FragColor.b + (1.0-gl_FragColor.a)*rgb2.b;
-                                           gl_FragColor.a = 1.0;
+                                           gl_FragColor.a = gl_FragColor.a*gl_FragColor.a + (1.0-gl_FragColor.a)*rgb2.a;
                                        }
                                    }
                                    );
@@ -75,26 +75,26 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
         case LUMINANCE: {
             masker_.allocate(width, height, GL_RGB);
             string shader_src = _S(
-                                   uniform float useSecondMaskee;
+                                   uniform float useABMaskees;
                                    uniform float invert;
                                    uniform sampler2DRect masker;
-                                   uniform sampler2DRect maskee;
-                                   uniform sampler2DRect secondMaskee;
+                                   uniform sampler2DRect maskeeA;
+                                   uniform sampler2DRect maskeeB;
                                    void main()
                                    {
-                                       gl_FragColor = texture2DRect(maskee, gl_TexCoord[0].st);
+                                       gl_FragColor = texture2DRect(maskeeA, gl_TexCoord[0].st);
                                        vec4 rgb = texture2DRect(masker, gl_TexCoord[0].st);
                                        gl_FragColor.a *= 0.298912*rgb.r + 0.586611*rgb.g + 0.114478*rgb.b;
                                        gl_FragColor.a = sqrt(gl_FragColor.a);
                                        if(invert > 0.5){
                                            gl_FragColor.a = abs(gl_FragColor.a-1.0);
                                        }
-                                       if(useSecondMaskee > 0.5){
-                                           vec4 rgb2 = texture2DRect(secondMaskee, gl_TexCoord[0].st);
+                                       if(useABMaskees > 0.5){
+                                           vec4 rgb2 = texture2DRect(maskeeB, gl_TexCoord[0].st);
                                            gl_FragColor.r = gl_FragColor.a*gl_FragColor.r + (1.0-gl_FragColor.a)*rgb2.r;
                                            gl_FragColor.g = gl_FragColor.a*gl_FragColor.g + (1.0-gl_FragColor.a)*rgb2.g;
                                            gl_FragColor.b = gl_FragColor.a*gl_FragColor.b + (1.0-gl_FragColor.a)*rgb2.b;
-                                           gl_FragColor.a = 1.0;
+                                           gl_FragColor.a = gl_FragColor.a*gl_FragColor.a + (1.0-gl_FragColor.a)*rgb2.a;
                                        }
                                    }
                                    );
@@ -103,9 +103,9 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
         }	break;
     }
 #undef _S
-    maskee_.allocate(width, height, internalFormat);
-    if(useSecondMaskee){
-        secondMaskee_.allocate(width, height, internalFormat);
+    maskeeA_.allocate(width, height, internalFormat);
+    if(useABMaskees){
+        maskeeB_.allocate(width, height, internalFormat);
     }
     makeTexCoords(tex_coords_, masker_.getTextureReference().getTextureData());
     makeVertices(vertices_, masker_.getTextureReference().getTextureData());
@@ -137,44 +137,45 @@ void ofxMask::clearMask()
     masker_.end();
 }
 
-void ofxMask::begin(bool clear)
+void ofxMask::beginA(bool clear)
+{
+    beginMaskee(&maskeeA_,clear);
+}
+
+void ofxMask::endA()
+{
+    endMaskee(&maskeeA_);
+}
+
+
+void ofxMask::beginB(bool clear)
+{
+    beginMaskee(&maskeeB_, clear);
+}
+
+void ofxMask::endB()
+{
+    endMaskee(&maskeeB_);
+}
+
+void ofxMask::beginMaskee(ofFbo *maskee, bool clear)
 {
     glDisable(GL_BLEND);
-    maskee_.begin();
+    maskee->begin();
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+    
     if(clear) {
         ofClear(0.0f, 0.0f, 0.0f, 0.0f);
     }
 }
 
-void ofxMask::end()
+void ofxMask::endMaskee(ofFbo *maskee)
 {
     glDisable(GL_BLEND);
     glPopAttrib();
-    maskee_.end();
-}
-
-
-void ofxMask::beginSecond(bool clear)
-{
-    glDisable(GL_BLEND);
-    secondMaskee_.begin();
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
-
-    if(clear) {
-        ofClear(0.0f, 0.0f, 0.0f, 0.0f);
-    }
-}
-
-void ofxMask::endSecond()
-{
-    glDisable(GL_BLEND);
-    glPopAttrib();
-    secondMaskee_.end();
+    maskee->end();
 }
 
 void ofxMask::draw()
@@ -183,11 +184,11 @@ void ofxMask::draw()
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     shader_.begin();
     shader_.setUniform1f("invert", invert ? 1.0 : 0.0);
-    shader_.setUniform1f("useSecondMaskee", useSecondMaskee ? 1.0 : 0.0);
+    shader_.setUniform1f("useABMaskees", useABMaskees ? 1.0 : 0.0);
     shader_.setUniformTexture("masker", masker_, 0);
-    shader_.setUniformTexture("maskee", maskee_, 1);
-    if(useSecondMaskee){
-        shader_.setUniformTexture("secondMaskee", secondMaskee_, 2);
+    shader_.setUniformTexture("maskeeA", maskeeA_, 1);
+    if(useABMaskees){
+        shader_.setUniformTexture("maskeeB", maskeeB_, 2);
     }
     glEnableClientState( GL_TEXTURE_COORD_ARRAY );
     glTexCoordPointer(2, GL_FLOAT, 0, tex_coords_ );
@@ -204,12 +205,16 @@ void ofxMask::drawMasker()
 }
 void ofxMask::drawMaskee()
 {
-    maskee_.draw(0,0,maskee_.getWidth(),maskee_.getHeight());
+    drawMaskeeA();
 }
 
-void ofxMask::drawSecondMaskee()
+void ofxMask::drawMaskeeA(){
+    maskeeA_.draw(0,0,maskeeA_.getWidth(),maskeeA_.getHeight());
+}
+
+void ofxMask::drawMaskeeB()
 {
-    secondMaskee_.draw(0,0,secondMaskee_.getWidth(),secondMaskee_.getHeight());
+    maskeeB_.draw(0,0,maskeeB_.getWidth(),maskeeB_.getHeight());
 }
 
 ofFbo* ofxMask::getMasker(){
@@ -217,11 +222,15 @@ ofFbo* ofxMask::getMasker(){
 }
 
 ofFbo* ofxMask::getMaskee(){
-    return &maskee_;
+    return getMaskeeA();
 }
 
-ofFbo* ofxMask::getSecondMaskee(){
-    return &secondMaskee_;
+ofFbo* ofxMask::getMaskeeA(){
+    return &maskeeA_;
+}
+
+ofFbo* ofxMask::getMaskeeB(){
+    return &maskeeB_;
 }
 
 int ofxMask::getWidth(){
@@ -232,11 +241,7 @@ int ofxMask::getHeight(){
     return height;
 }
 
-void ofxMask::setInvertMask(bool invert){
+void ofxMask::invertMask(bool invert){
     this->invert = invert;
-}
-
-void ofxMask::setUseSecondMaskee(bool useSecondMaskee){
-    this->useSecondMaskee = useSecondMaskee;
 }
 /* EOF */

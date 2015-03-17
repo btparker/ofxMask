@@ -11,7 +11,7 @@ public:
 		ALPHA,
 		LUMINANCE
 	};
-	void setup(int width, int height, GLint internalFormat, Type type, bool useSecondMaskee = false);
+	void setup(int width, int height, GLint internalFormat, Type type, bool useABMaskees = false);
 
 	void beginMask(bool clear=true);
 	void endMask();
@@ -20,34 +20,41 @@ public:
 	void begin(bool clear=true);
 	void end();
     
-    void beginSecond(bool clear=true);
-    void endSecond();
+    void beginA(bool clear=true);
+    void endA();
+    
+    void beginB(bool clear=true);
+    void endB();
 
 	void draw();
 	
 	void drawMasker();
 	void drawMaskee();
-    void drawSecondMaskee();
+    void drawMaskeeA();
+    void drawMaskeeB();
     
     ofFbo* getMasker();
     ofFbo* getMaskee();
-    ofFbo* getSecondMaskee();
+    ofFbo* getMaskeeA();
+    ofFbo* getMaskeeB();
     
     int getWidth();
     int getHeight();
-    void setUseSecondMaskee(bool useSecondMaskee);
-    void setInvertMask(bool invert);
+    void invertMask(bool invert);
 
 private:
-	ofFbo masker_, maskee_, secondMaskee_;
+	ofFbo masker_, maskeeA_, maskeeB_;
 	ofShader shader_;
 	float vertices_[8];
 	float tex_coords_[8];
     int width;
     int height;
     bool invert;
-    bool useSecondMaskee;
+    bool useABMaskees;
     GLint internalFormat;
+    
+    void beginMaskee(ofFbo* maskee, bool clear = true);
+    void endMaskee(ofFbo* maskee);
 };
 
 /* EOF */
