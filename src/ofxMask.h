@@ -11,6 +11,8 @@ public:
 		ALPHA,
 		LUMINANCE
 	};
+    
+    void setup(ofFbo::Settings s, Type type, bool useABMaskees = false);
 	void setup(int width, int height, GLint internalFormat, Type type, bool useABMaskees = false);
 
 	void beginMask(bool clear=true);
@@ -47,14 +49,14 @@ private:
 	ofShader shader_;
 	float vertices_[8];
 	float tex_coords_[8];
-    int width;
-    int height;
     bool invert;
     bool useABMaskees;
-    GLint internalFormat;
+//    GLint internalFormat;
     Type type;
     void beginMaskee(ofFbo* maskee, bool clear = true);
     void endMaskee(ofFbo* maskee);
+    
+    ofFbo::Settings fboS;
 };
 
 /* EOF */

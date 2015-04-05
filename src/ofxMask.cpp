@@ -35,18 +35,18 @@ namespace {
         }
     }
 }
-void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool useABMaskees)
+
+void ofxMask::setup(ofFbo::Settings fboS, Type type, bool useABMaskees)
 {
-    this->internalFormat = internalFormat;
+    this->fboS = fboS;
     this->useABMaskees = useABMaskees;
     this->invert = false;
-    this->width = width;
-    this->height = height;
     this->type = type;
+    
 #define _S(a) #a
     switch(type) {
         case ALPHA: {
-            masker_.allocate(width, height, GL_RGBA);
+            masker_.allocate(fboS);
             string shader_src = _S(
                                    uniform float useABMaskees;
                                    uniform float invert;
@@ -66,7 +66,7 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
                                            gl_FragColor.r = gl_FragColor.a*gl_FragColor.r + (1.0-gl_FragColor.a)*rgb2.r;
                                            gl_FragColor.g = gl_FragColor.a*gl_FragColor.g + (1.0-gl_FragColor.a)*rgb2.g;
                                            gl_FragColor.b = gl_FragColor.a*gl_FragColor.b + (1.0-gl_FragColor.a)*rgb2.b;
-                                           gl_FragColor.a = gl_FragColor.a*gl_FragColor.a + (1.0-gl_FragColor.a)*rgb2.a;
+                                           gl_FragColor.a = 1.0;
                                        }
                                    }
                                    );
@@ -74,7 +74,7 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
             shader_.linkProgram();
         }	break;
         case LUMINANCE: {
-            masker_.allocate(width, height, GL_RGB);
+            masker_.allocate(fboS);
             string shader_src = _S(
                                    uniform float useABMaskees;
                                    uniform float invert;
@@ -95,8 +95,9 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
                                            gl_FragColor.r = gl_FragColor.a*gl_FragColor.r + (1.0-gl_FragColor.a)*rgb2.r;
                                            gl_FragColor.g = gl_FragColor.a*gl_FragColor.g + (1.0-gl_FragColor.a)*rgb2.g;
                                            gl_FragColor.b = gl_FragColor.a*gl_FragColor.b + (1.0-gl_FragColor.a)*rgb2.b;
-                                           gl_FragColor.a = gl_FragColor.a*gl_FragColor.a + (1.0-gl_FragColor.a)*rgb2.a;
+                                           gl_FragColor.a = 1.0;
                                        }
+                                       
                                    }
                                    );
             shader_.setupShaderFromSource(GL_FRAGMENT_SHADER, shader_src);
@@ -104,12 +105,22 @@ void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool
         }	break;
     }
 #undef _S
-    maskeeA_.allocate(width, height, internalFormat);
+    maskeeA_.allocate(fboS);
     if(useABMaskees){
-        maskeeB_.allocate(width, height, internalFormat);
+        maskeeB_.allocate(fboS);
     }
     makeTexCoords(tex_coords_, masker_.getTextureReference().getTextureData());
     makeVertices(vertices_, masker_.getTextureReference().getTextureData());
+    
+}
+
+
+void ofxMask::setup(int width, int height, GLint internalFormat, Type type, bool useABMaskees)
+{
+    fboS.width = width;
+    fboS.height = height;
+    fboS.internalformat = internalFormat;
+    setup(fboS, type,useABMaskees);
 }
 
 void ofxMask::beginMask(bool clear)
@@ -249,11 +260,11 @@ ofFbo* ofxMask::getMaskeeB(){
 }
 
 int ofxMask::getWidth(){
-    return width;
+    return fboS.width;
 }
 
 int ofxMask::getHeight(){
-    return height;
+    return fboS.height;
 }
 
 void ofxMask::invertMask(bool invert){
