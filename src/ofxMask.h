@@ -11,7 +11,6 @@ public:
 		ALPHA,
 		LUMINANCE
 	};
-    
     void setup(ofFbo::Settings s, Type type, bool useABMaskees = false);
 	void setup(int width, int height, GLint internalFormat, Type type, bool useABMaskees = false);
 

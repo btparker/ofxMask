@@ -109,8 +109,8 @@ void ofxMask::setup(ofFbo::Settings fboS, Type type, bool useABMaskees)
     if(useABMaskees){
         maskeeB_.allocate(fboS);
     }
-    makeTexCoords(tex_coords_, masker_.getTextureReference().getTextureData());
-    makeVertices(vertices_, masker_.getTextureReference().getTextureData());
+    makeTexCoords(tex_coords_, masker_.getTexture().getTextureData());
+    makeVertices(vertices_, masker_.getTexture().getTextureData());
     
 }
 
